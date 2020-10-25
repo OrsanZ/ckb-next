@@ -5,7 +5,7 @@
 KbMode::KbMode(Kb* parent, const KeyMap& keyMap, const QString &guid, const QString& modified) :
     QObject(parent),
     _name("Unnamed"), _id(guid, modified),
-    _light(new KbLight(this, keyMap)), _bind(new KbBind(this, parent, keyMap)), _perf(new KbPerf(this)),
+    _light(new KbLight(this, keyMap)), _bind(new KbBind(this, parent, keyMap)), _perf(new KbPerf(this, parent)),
     _needsSave(true)
 {
     connect(_light, SIGNAL(updated()), this, SLOT(doUpdate()));
@@ -32,7 +32,7 @@ KbMode::KbMode(Kb* parent, const KeyMap& keyMap, CkbSettingsBase& settings) :
     QObject(parent),
     _name(settings.value("Name").toString().trimmed()),
     _id(settings.value("GUID").toString().trimmed(), settings.value("Modified").toString().trimmed()),
-    _light(new KbLight(this, keyMap)), _bind(new KbBind(this, parent, keyMap)), _perf(new KbPerf(this)),
+    _light(new KbLight(this, keyMap)), _bind(new KbBind(this, parent, keyMap)), _perf(new KbPerf(this, parent)),
     _needsSave(false)
 {
     if(settings.contains("HwModified"))

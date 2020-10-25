@@ -111,7 +111,7 @@ void RebindWidget::setBind(KbBind* newBind, KbProfile* newProfile){
         ui->dpiWarning->hide();
         // Fill DPI slots
         const KbPerf* perf = bind->perf();
-        for(int i = 0; i < KbPerf::DPI_COUNT; i++){
+        for(int i = 0; i < perf->device()->dpiCount; i++){
             bool sniper = (i == 0);
             int boxIdx = i + DPI_OFFSET;
             QPoint dpi = perf->dpi(i);
@@ -119,6 +119,11 @@ void RebindWidget::setBind(KbBind* newBind, KbProfile* newProfile){
             if(!sniper) text = text.arg(i);
             ui->dpiBox->setItemText(boxIdx, text);
         }
+        // Removes unsupported dpi profiles
+        for(int i = KbPerf::DPI_COUNT; i > perf->device()->dpiCount; i--) {
+            ui->dpiBox->removeItem(i + 4);
+        }
+        
     } else {
         ui->dpiButton->setEnabled(false);
         ui->dpiBox->setEnabled(false);

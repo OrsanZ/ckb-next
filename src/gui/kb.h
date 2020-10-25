@@ -22,6 +22,7 @@ public:
     ushort productID;
     bool hwload;
     bool adjrate;
+    uchar dpiCount, minLift, maxLift;
 
     // Keyboard model
     inline KeyMap::Model    model() const                       { return _model; }

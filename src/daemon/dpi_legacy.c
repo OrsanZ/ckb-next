@@ -9,7 +9,7 @@ void cmd_lift_legacy(usbdevice* kb, usbmode* mode, int dummy1, int dummy2, const
     uchar heightnum;
     if(sscanf(height, "%hhu", &heightnum) != 1)
         return;
-    if(heightnum > LIFT_MAX || heightnum < LIFT_MIN)
+    if(heightnum > kb->maxlift || heightnum < kb->minlift)
         return;
     mode->dpi.lift = heightnum;
 

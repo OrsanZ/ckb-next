@@ -5,6 +5,7 @@
 #include "kbbind.h"
 #include "kbprofile.h"
 #include "macroreader.h"
+#include "kb.h"
 
 // Key rebinding widget
 

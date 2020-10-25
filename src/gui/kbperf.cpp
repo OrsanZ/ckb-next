@@ -11,10 +11,10 @@
 #define map_last(map) ((map).value((map).keys().last()))
 #endif
 
-KbPerf::KbPerf(KbMode* parent) :
+KbPerf::KbPerf(KbMode* parent, Kb* device) :
     QObject(parent), runningPushIdx(1),
-    _iOpacity(1.f), _dpiIndicator(true), _liftHeight(MEDIUM), _angleSnap(false),
-    _needsUpdate(true), _needsSave(true) {
+    _iOpacity(1.f), _dpiIndicator(true), _liftHeight((height) _device->minLift), _angleSnap(false),
+    _needsUpdate(true), _needsSave(true), _device(device) {
     // Default DPI settings
     dpiX[0] = dpiY[0] = 400;
     dpiX[1] = dpiY[1] = 450;
@@ -29,7 +29,7 @@ KbPerf::KbPerf(KbMode* parent) :
     dpiClr[4] = QColor(0, 255, 255);
     dpiClr[5] = QColor(255, 255, 255);
     dpiClr[6] = QColor(192, 192, 192);
-    for(int i = 0; i < DPI_COUNT; i++)
+    for(int i = 0; i < device->dpiCount; i++)
         dpiOn[i] = true;
     dpiBaseIdx = 3;
     dpiCurX = dpiX[dpiBaseIdx];
@@ -62,7 +62,7 @@ KbPerf::KbPerf(KbMode* parent, const KbPerf& other) :
     _needsUpdate(true), _needsSave(true) {
     memcpy(dpiX, other.dpiX, sizeof(dpiX));
     memcpy(dpiY, other.dpiY, sizeof(dpiY));
-    for(int i = 0; i < DPI_COUNT + 1; i++)
+    for(int i = 0; i < _device->dpiCount + 1; i++)
         dpiClr[i] = other.dpiClr[i];
     memcpy(dpiOn, other.dpiOn, sizeof(dpiOn));
     for(int i = 0; i < I_COUNT; i++){
@@ -82,7 +82,7 @@ const KbPerf& KbPerf::operator= (const KbPerf& other){
     _needsUpdate = true; _needsSave = true;
     memcpy(dpiX, other.dpiX, sizeof(dpiX));
     memcpy(dpiY, other.dpiY, sizeof(dpiY));
-    for(int i = 0; i < DPI_COUNT + 1; i++)
+    for(int i = 0; i < _device->dpiCount + 1; i++)
         dpiClr[i] = other.dpiClr[i];
     memcpy(dpiOn, other.dpiOn, sizeof(dpiOn));
     for(int i = 0; i < I_COUNT; i++){
@@ -136,7 +136,7 @@ void KbPerf::load(CkbSettingsBase& settings){
     // Read DPI settings
     {
         SGroup group(settings, "DPI");
-        for(int i = 0; i < DPI_COUNT; i++){
+        for(int i = 0; i < _device->dpiCount; i++){
             QString iStr = QString::number(i);
             QPoint value = settings.value(iStr).toPoint();
             if(value.isNull())
@@ -170,7 +170,7 @@ void KbPerf::load(CkbSettingsBase& settings){
             // If there isn't a setting for current DPI stage, pick the first
             // enabled one. Failing that just pick stage 1.
             dpiBaseIdx = 1;
-            for (int i = 1; i < DPI_COUNT; i++) {
+            for (int i = 1; i < _device->dpiCount; i++) {
                 if (dpiOn[i]) {
                     dpiBaseIdx = i;
                     break;
@@ -183,8 +183,8 @@ void KbPerf::load(CkbSettingsBase& settings){
     }
     // Read misc. mouse settings
     _liftHeight = (height)settings.value("LiftHeight").toInt();
-    if(_liftHeight < LOW || _liftHeight > HIGH)
-        _liftHeight = MEDIUM;
+    if(_liftHeight < _device->minLift || _liftHeight > _device->maxLift)
+        _liftHeight = (height) _device->minLift;
     _angleSnap = settings.value("AngleSnap").toBool();
     if(typeid(settings) == typeid(CkbSettings) && settings.contains("NoIndicator")){
         // ckb <= v0.2.0
@@ -230,7 +230,7 @@ void KbPerf::save(CkbSettingsBase& settings){
     SGroup group(settings, "Performance");
     {
         SGroup group(settings, "DPI");
-        for(int i = 0; i < DPI_COUNT; i++){
+        for(int i = 0; i < _device->dpiCount; i++){
             QString iStr = QString::number(i);
             settings.setValue(iStr, QPoint(dpiX[i], dpiY[i]));
             settings.setValue(iStr + "RGB", dpiClr[i].name(QColor::HexArgb));
@@ -262,7 +262,7 @@ void KbPerf::save(CkbSettingsBase& settings){
 }
 
 void KbPerf::dpi(int index, const QPoint& newValue){
-    if(index < 0 || index >= DPI_COUNT)
+    if(index < 0 || index >= _device->dpiCount)
         return;
     dpiX[index] = newValue.x();
     dpiY[index] = newValue.y();
@@ -318,7 +318,7 @@ void KbPerf::dpiUp(){
     int idx = baseDpiIdx();
     do {
         idx++;
-        if(idx >= DPI_COUNT)
+        if(idx >= _device->dpiCount)
             return;
     } while(!dpiOn[idx]);
     baseDpiIdx(idx);
@@ -339,7 +339,7 @@ void KbPerf::dpiCycleUp(){
     int idx = baseDpiIdx();
     do {
         idx++;
-        if(idx >= DPI_COUNT)
+        if(idx >= _device->dpiCount)
             idx = SNIPER + 1;
         if(idx == baseDpiIdx())
             return;
@@ -352,7 +352,7 @@ void KbPerf::dpiCycleDown(){
     do {
         idx--;
         if(idx <= SNIPER)
-            idx = DPI_COUNT - 1;
+            idx = _device->dpiCount - 1;
 	if(idx == baseDpiIdx())
             return;
     } while(!dpiOn[idx]);
@@ -392,7 +392,7 @@ void KbPerf::setIndicator(indicator index, const QColor& color1, const QColor& c
 }
 
 void KbPerf::liftHeight(height newHeight){
-    if(newHeight < LOW || newHeight > HIGH)
+    if(newHeight < _device->minLift || newHeight > _device->maxLift)
         return;
     _liftHeight = newHeight;
     _needsUpdate = _needsSave = true;
@@ -419,7 +419,7 @@ void KbPerf::update(QFile& cmd, int notifyNumber, bool force, bool saveCustomDpi
         cmd.write(QString("dpi 0:%1,%2").arg(dpiX[0]).arg(dpiY[0]).toLatin1());
     }
     // Save stages 1 - 5
-    for(int i = 1; i < DPI_COUNT; i++){
+    for(int i = 1; i < _device->dpiCount; i++){
         if(!dpiOn[i] && stage != i)
             cmd.write(QString(" %1:off").arg(i).toLatin1());
         else
@@ -429,7 +429,7 @@ void KbPerf::update(QFile& cmd, int notifyNumber, bool force, bool saveCustomDpi
     cmd.write(QString(" dpisel %1 lift %2 snap %3").arg(stage).arg(_liftHeight).arg(_angleSnap ? "on" : "off").toLatin1());
     // Save DPI colors
     cmd.write(" rgb");
-    for(int i = 0; i < DPI_COUNT; i++){
+    for(int i = 0; i < _device->dpiCount; i++){
         QColor color = dpiColor(i);
         cmd.write(" dpi");
         char output[9];

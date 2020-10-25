@@ -94,6 +94,15 @@ device_desc models[] = {
 
 size_t N_MODELS = sizeof(models) / sizeof(device_desc);
 
+const dpioverride DPIOVERRIDES[] = {
+    {V_CORSAIR, P_DARK_CORE, 4, 3, 5},
+    {V_CORSAIR, P_DARK_CORE_WL, 4, 3, 5},
+    {V_CORSAIR, P_DARK_CORE_SE, 4, 3, 5},
+    {V_CORSAIR, P_DARK_CORE_SE_WL, 4, 3, 5},
+    {V_CORSAIR, P_M95, 4, 1, 5},
+};
+
+size_t N_DPIOVERRIDES = sizeof(DPIOVERRIDES) / sizeof(dpioverride);
 
 /// brief .
 ///
@@ -369,6 +378,20 @@ static void* _setupusb(void* context){
         kb->features |= FEAT_WIRELESS;
 
     kb->usbdelay = USB_DELAY_DEFAULT;
+
+    // Apply dpi profile and lift height overrides
+    kb->dpicount = DPI_COUNT;
+    kb->minlift = LIFT_MIN;
+    kb->maxlift = LIFT_MAX;
+    for(size_t i = 0; i < N_DPIOVERRIDES; i++)
+    {
+       if(kb->vendor == DPIOVERRIDES[i].vendor && kb->product == DPIOVERRIDES[i].product) {
+           kb->dpicount = DPIOVERRIDES[i].dpicount;
+           kb->minlift = DPIOVERRIDES[i].minlift;
+           kb->maxlift = DPIOVERRIDES[i].maxlift;
+           break;
+       }
+    }
 
     /// Allocate memory for the os_usbrecv() buffer
     kb->interruptbuf = malloc(MSG_SIZE * sizeof(uchar));

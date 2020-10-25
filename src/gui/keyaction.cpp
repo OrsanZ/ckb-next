@@ -260,11 +260,11 @@ void KeyAction::keyEvent(KbBind* bind, bool down){
         return;
     QString prefix = parts[0];
     int suffix = parts[1].toInt();
+    Kb* device = bind->devParent();
     if(prefix == "$mode"){
         if(!down)
             return;
         // Change mode
-        Kb* device = bind->devParent();
         KbProfile* currentProfile = device->currentProfile();
         int mode = currentProfile->indexOf(currentProfile->currentMode());
         int modeCount = currentProfile->modeCount();
@@ -339,7 +339,7 @@ void KeyAction::keyEvent(KbBind* bind, bool down){
             break;
         }
         default:
-            if(level < 1 || level >= KbPerf::DPI_COUNT
+            if(level < 1 || level >= device->dpiCount
                     || !down)
                 return;
             perf->baseDpiIdx(level);

@@ -32,7 +32,7 @@ void cmd_dpi(usbdevice* kb, usbmode* mode, int dummy, const char* stages, const 
     char stagename[3];
     while(position < left && sscanf(stages + position, "%2[^,]%n", stagename, &field) == 1){
         uchar stagenum;
-        if(sscanf(stagename, "%hhu", &stagenum) && stagenum < DPI_COUNT){
+        if(sscanf(stagename, "%hhu", &stagenum) && stagenum < kb->dpicount){
             // Set DPI for this stage
             if(disable){
                 mode->dpi.enabled &= ~(1 << stagenum);
@@ -57,7 +57,7 @@ void cmd_dpisel(usbdevice* kb, usbmode* mode, int dummy1, int dummy2, const char
     uchar stagenum;
     if(sscanf(stage, "%hhu", &stagenum) != 1)
         return;
-    if(stagenum > DPI_COUNT)
+    if(stagenum > kb->dpicount)
         return;
     mode->dpi.current = stagenum;
 }
@@ -70,9 +70,7 @@ void cmd_lift(usbdevice* kb, usbmode* mode, int dummy1, int dummy2, const char* 
     uchar heightnum;
     if(sscanf(height, "%hhu", &heightnum) != 1)
         return;
-    if(heightnum > LIFT_MAX || heightnum < LIFT_MIN)
-        return;
-    if(IS_DARK_CORE(kb) && heightnum < 3) 
+    if(heightnum > kb->maxlift || heightnum < kb->minlift)
         return;
     mode->dpi.lift = heightnum;
 }
@@ -95,7 +93,7 @@ char* printdpi(const dpiset* dpi, const usbdevice* kb){
     const int BUFFER_LEN = 100;
     char* buffer = malloc(BUFFER_LEN);
     int length = 0;
-    for(int i = 0; i < DPI_COUNT; i++){
+    for(int i = 0; i < kb->dpicount; i++){
         // Print the stage number
         int newlen = 0;
         snprintf(buffer + length, BUFFER_LEN - length, length == 0 ? "%d%n" : " %d%n", i, &newlen);
@@ -173,7 +171,7 @@ int updatedpi(usbdevice* kb, int force){
     
     // Send X/Y DPIs. We've changed to the new stage already so these can be set
     // safely.
-    for(int i = 0; i < DPI_COUNT; i++){
+    for(int i = 0; i < kb->dpicount; i++){
         if (newdpi->x[i] == lastdpi->x[i] && newdpi->y[i] == lastdpi->y[i] && !force && !rgbcmp(lastlight, newlight))
             continue;
         uchar data_pkt[MSG_SIZE] = { CMD_SET, FIELD_MOUSE, MOUSE_DPIPROF, 0 };
@@ -219,7 +217,7 @@ int updatedpi(usbdevice* kb, int force){
 
 int savedpi(usbdevice* kb, dpiset* dpi, lighting* light){
     // Send X/Y DPIs
-    for(int i = 0; i < DPI_COUNT; i++){
+    for(int i = 0; i < kb->dpicount; i++){
         uchar data_pkt[MSG_SIZE] = { CMD_SET, FIELD_MOUSE, MOUSE_DPIPROF, 1 };
         data_pkt[2] |= i;
         data_pkt[5] = dpi->x[i] & 0xFF;
@@ -266,17 +264,17 @@ int loaddpi(usbdevice* kb, dpiset* dpi, lighting* light){
     }
     // Copy data from device
     dpi->enabled = in_pkt[0][4];
-    dpi->enabled &= (1 << DPI_COUNT) - 1;
+    dpi->enabled &= (1 << kb->dpicount) - 1;
     dpi->current = in_pkt[1][4];
-    if(dpi->current >= DPI_COUNT)
+    if(dpi->current >= kb->dpicount)
         dpi->current = 0;
     dpi->lift = in_pkt[2][4];
-    if(dpi->lift < LIFT_MIN || dpi->lift > LIFT_MAX)
-        dpi->lift = LIFT_MIN;
+    if(dpi->lift < kb->minlift || dpi->lift > kb->maxlift)
+        dpi->lift = kb->minlift;
     dpi->snap = !!in_pkt[3][4];
 
     // Get X/Y DPIs
-    for(int i = 0; i < DPI_COUNT; i++){
+    for(int i = 0; i < kb->dpicount; i++){
         uchar data_pkt[MSG_SIZE] = { CMD_GET, FIELD_MOUSE, MOUSE_DPIPROF, 1 };
         uchar in_pkt[MSG_SIZE];
         data_pkt[2] |= i;

@@ -267,12 +267,13 @@ static int _mkdevpath(usbdevice* kb){
         _mknotifynode(kb, 0);
 
         // Write the model and serial to files
-        char mpath[sizeof(path) + 6], spath[sizeof(path) + 7], ipath[sizeof(path) + 10], lpath[sizeof(path) + 7], dpath[sizeof(path) + 4];
+        char mpath[sizeof(path) + 6], spath[sizeof(path) + 7], ipath[sizeof(path) + 10], lpath[sizeof(path) + 7], dpath[sizeof(path) + 4], mipath[sizeof(path) + 10];
         snprintf(mpath, sizeof(mpath), "%s/model", path);
         snprintf(spath, sizeof(spath), "%s/serial", path);
         snprintf(ipath, sizeof(ipath), "%s/productid", path);
         snprintf(lpath, sizeof(lpath), "%s/layout", path);
         snprintf(dpath, sizeof(dpath), "%s/dpi", path);
+        snprintf(mipath, sizeof(mipath), "%s/mouseinfo", path);
 
         char productid[5];
         snprintf(productid, 5, "%04x", kb->product);
@@ -285,11 +286,15 @@ static int _mkdevpath(usbdevice* kb){
             }
         }
 
+        char mouseinfo[12];
+        snprintf(mouseinfo, 12, "%hhi:%hhi:%hhi", kb->dpicount, kb->minlift, kb->maxlift);
+
         printnode(mpath, kb->name);
         printnode(spath, kb->serial);
         printnode(ipath, productid);
         printnode(lpath, layoutstr(kb->layout));
         printnode(dpath, dpistr);
+        printnode(mipath, mouseinfo);
 
         // Write the device's features
         char fpath[sizeof(path) + 9];

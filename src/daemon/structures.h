@@ -54,6 +54,8 @@ typedef struct {
 #define MACRO_MAX   1024
 
 // DPI settings for mice
+// Note: DPI_COUNT, LIFT_MIN and LIFT_MAX may vary from the actual amount
+//       of supported profiles. The per-device values are stored in usbdevice.
 #define DPI_COUNT   6
 #define LIFT_MIN    1
 #define LIFT_MAX    5
@@ -71,6 +73,12 @@ typedef struct {
     // Send to device even if unchanged? (used when initializing profiles)
     uchar forceupdate;
 } dpiset;
+
+typedef struct {
+    ushort vendor, product;
+    ushort dpicount;
+    uchar minlift, maxlift;
+} dpioverride;
 
 // Lighting structure for a mode
 typedef struct {
@@ -272,6 +280,10 @@ typedef struct {
     ushort fwversion;
     // Poll rate (ms), or -1 if unsupported
     char pollrate;
+    // Amount of supported DPI profiles
+    uchar dpicount;
+    // Amount of supported DPI profiles
+    uchar minlift, maxlift;
     // Physical device layout; LAYOUT_NONE if irrelevant, LAYOUT_UNKNOWN if unimplemented.
     uchar layout;
     // USB protocol delay (ms)

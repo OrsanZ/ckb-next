@@ -11,12 +11,12 @@ MPerfWidget::MPerfWidget(QWidget *parent) :
     ui->setupUi(this);
     ui->xyBox->setChecked(!_xyLink);
     // Set up DPI stages
-    stages[0].indicator = ui->iButton0; stages[0].xSlider = ui->xSlider0; stages[0].ySlider = ui->ySlider0; stages[0].xBox = ui->xBox0; stages[0].yBox = ui->yBox0; stages[0].enableCheck = 0;
-    stages[1].indicator = ui->iButton1; stages[1].xSlider = ui->xSlider1; stages[1].ySlider = ui->ySlider1; stages[1].xBox = ui->xBox1; stages[1].yBox = ui->yBox1; stages[1].enableCheck = ui->eBox1;
-    stages[2].indicator = ui->iButton2; stages[2].xSlider = ui->xSlider2; stages[2].ySlider = ui->ySlider2; stages[2].xBox = ui->xBox2; stages[2].yBox = ui->yBox2; stages[2].enableCheck = ui->eBox2;
-    stages[3].indicator = ui->iButton3; stages[3].xSlider = ui->xSlider3; stages[3].ySlider = ui->ySlider3; stages[3].xBox = ui->xBox3; stages[3].yBox = ui->yBox3; stages[3].enableCheck = ui->eBox3;
-    stages[4].indicator = ui->iButton4; stages[4].xSlider = ui->xSlider4; stages[4].ySlider = ui->ySlider4; stages[4].xBox = ui->xBox4; stages[4].yBox = ui->yBox4; stages[4].enableCheck = ui->eBox4;
-    stages[5].indicator = ui->iButton5; stages[5].xSlider = ui->xSlider5; stages[5].ySlider = ui->ySlider5; stages[5].xBox = ui->xBox5; stages[5].yBox = ui->yBox5; stages[5].enableCheck = ui->eBox5;
+    stages[0].indicator = ui->iButton0; stages[0].xSlider = ui->xSlider0; stages[0].ySlider = ui->ySlider0; stages[0].xBox = ui->xBox0; stages[0].yBox = ui->yBox0; stages[0].enableCheck = 0; stages[0].label = ui->label_14;
+    stages[1].indicator = ui->iButton1; stages[1].xSlider = ui->xSlider1; stages[1].ySlider = ui->ySlider1; stages[1].xBox = ui->xBox1; stages[1].yBox = ui->yBox1; stages[1].enableCheck = ui->eBox1; stages[1].label = ui->label_5;
+    stages[2].indicator = ui->iButton2; stages[2].xSlider = ui->xSlider2; stages[2].ySlider = ui->ySlider2; stages[2].xBox = ui->xBox2; stages[2].yBox = ui->yBox2; stages[2].enableCheck = ui->eBox2; stages[2].label = ui->label_6;
+    stages[3].indicator = ui->iButton3; stages[3].xSlider = ui->xSlider3; stages[3].ySlider = ui->ySlider3; stages[3].xBox = ui->xBox3; stages[3].yBox = ui->yBox3; stages[3].enableCheck = ui->eBox3; stages[3].label = ui->label_7;
+    stages[4].indicator = ui->iButton4; stages[4].xSlider = ui->xSlider4; stages[4].ySlider = ui->ySlider4; stages[4].xBox = ui->xBox4; stages[4].yBox = ui->yBox4; stages[4].enableCheck = ui->eBox4; stages[4].label = ui->label_8;
+    stages[5].indicator = ui->iButton5; stages[5].xSlider = ui->xSlider5; stages[5].ySlider = ui->ySlider5; stages[5].xBox = ui->xBox5; stages[5].yBox = ui->yBox5; stages[5].enableCheck = ui->eBox5; stages[5].label = ui->label_13;
     stages[0].indicatorLabel = ui->iLabel0;
     stages[1].indicatorLabel = ui->iLabel1;
     stages[2].indicatorLabel = ui->iLabel2;
@@ -81,7 +81,8 @@ void MPerfWidget::setPerf(KbPerf *newPerf, KbProfile *newProfile){
     perf = newPerf;
     profile = newProfile;
     ui->spinBox->setValue(round(perf->iOpacity() * 100.f));
-    for(int i = 0; i < DPI_COUNT; i++){
+    Kb* device = perf->device();
+    for(int i = 0; i < device->dpiCount; i++){
         stages[i].indicator->color(perf->dpiColor(i));
         bool oldLink = _xyLink;
         // Don't force X/Y to the same value if they were set differently in the past
@@ -92,9 +93,40 @@ void MPerfWidget::setPerf(KbPerf *newPerf, KbProfile *newProfile){
         if(stages[i].enableCheck)
             stages[i].enableCheck->setChecked(perf->dpiEnabled(i));
     }
+    for(int i = device->dpiCount; i < DPI_COUNT; i++) {
+        stages[i].indicator->hide();
+        stages[i].xSlider->hide();
+        stages[i].ySlider->hide();
+        stages[i].xBox->hide();
+        stages[i].yBox->hide();
+        stages[i].enableCheck->hide();
+        stages[i].indicatorLabel->hide();
+        stages[i].label->hide();
+    }
+    // Hide unneeded lift height options
+    switch(device->maxLift - device->minLift) {
+        // Hide lift height ComboBox and label if there is only one option
+        case 0:
+            ui->lHeightBox->hide();
+            ui->label_25->hide();
+            break;
+        case 1:
+            ui->lHeightBox->removeItem(3);
+            ui->lHeightBox->removeItem(2);
+            ui->lHeightBox->removeItem(1);
+            break;
+        case 2:
+            ui->lHeightBox->removeItem(3);
+            ui->lHeightBox->removeItem(1);
+            break;
+        case 3:
+            ui->lHeightBox->removeItem(2);
+            break;
+    }
+
     ui->iButtonO->color(perf->dpiColor(KbPerf::OTHER));
     ui->aSnapBox->setChecked(perf->angleSnap());
-    ui->lHeightBox->setCurrentIndex(perf->liftHeight() - 1);
+    ui->lHeightBox->setCurrentIndex(perf->liftHeight() - device->minLift);
     ui->indicBox->setChecked(perf->dpiIndicator());
     highlightDpiBox(perf->getDpiIdx());
     connect(perf, &KbPerf::dpiChanged, this, &MPerfWidget::highlightDpiBox);
@@ -211,8 +243,6 @@ void MPerfWidget::sliderYMoved(int index){
 }
 
 void MPerfWidget::setLegacyM95(){
-    ui->eBox4->setChecked(false);
-    ui->eBox5->setChecked(false);
     QWidget* w[] =  {
         ui->indicBox,
         ui->spinBox,
@@ -225,27 +255,6 @@ void MPerfWidget::setLegacyM95(){
         ui->iButton4,
         ui->iButton5,
         ui->iButtonO,
-
-        // Hide stages 4, 5, and other completely
-        ui->label_3,
-        ui->label_15,
-
-        // Hide checkboxes as we can't disable DPI stages
-        ui->eBox1,
-        ui->eBox2,
-        ui->eBox3,
-        ui->eBox4,
-        ui->eBox5,
-        ui->label_13,
-        ui->label_8,
-        ui->xSlider4,
-        ui->xSlider5,
-        ui->ySlider4,
-        ui->ySlider5,
-        ui->xBox4,
-        ui->xBox5,
-        ui->yBox5,
-        ui->yBox4
     };
     for(size_t i = 0; i < sizeof(w) / sizeof(QWidget*); i++)
         w[i]->hide();
@@ -300,7 +309,7 @@ void MPerfWidget::on_aSnapBox_clicked(bool checked){
 }
 
 void MPerfWidget::on_lHeightBox_activated(int index){
-    perf->liftHeight((KbPerf::height)(index + 1));
+    perf->liftHeight((KbPerf::height)(index + perf->device()->minLift));
 }
 
 void MPerfWidget::on_copyButton_clicked(){

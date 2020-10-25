@@ -10,6 +10,7 @@
 #include "kbperf.h"
 #include "kbprofile.h"
 #include "colorbutton.h"
+#include "kb.h"
 
 namespace Ui {
 class MPerfWidget;
@@ -39,7 +40,7 @@ private:
         QSlider* xSlider, *ySlider;
         QSpinBox* xBox, *yBox;
         QCheckBox* enableCheck;
-        QLabel* indicatorLabel;
+        QLabel* indicatorLabel, *label;
     };
     DpiUi stages[DPI_COUNT];
     bool _xyLink;

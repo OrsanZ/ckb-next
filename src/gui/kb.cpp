@@ -17,7 +17,7 @@ int Kb::_frameRate = 30, Kb::_scrollSpeed = 0;
 bool Kb::_dither = false, Kb::_mouseAccel = true, Kb::_delay = false;
 
 Kb::Kb(QObject *parent, const QString& path) :
-    QThread(parent), features("N/A"), firmware("N/A"), pollrate("N/A"), monochrome(false), hwload(false), adjrate(false),
+    QThread(parent), features("N/A"), firmware("N/A"), pollrate("N/A"), monochrome(false), hwload(false), adjrate(false), dpiCount(6), minLift(1), maxLift(5),
     batteryTimer(0), batteryIcon(0), showBatteryIndicator(false), devpath(path), cmdpath(path + "/cmd"), notifyPath(path + "/notify1"), macroPath(path + "/notify2"),
     _currentProfile(0), _currentMode(0), _model(KeyMap::NO_MODEL), battery(0), charging(0),
     lastAutoSave(QDateTime::currentMSecsSinceEpoch()),
@@ -28,7 +28,7 @@ Kb::Kb(QObject *parent, const QString& path) :
     memset(hwLoading, 0, sizeof(hwLoading));
 
     // Get the features, model, serial number, FW version (if available), poll rate (if available), and layout from /dev nodes
-    QFile ftpath(path + "/features"), mpath(path + "/model"), spath(path + "/serial"), fwpath(path + "/fwversion"), ppath(path + "/pollrate"), prodpath(path + "/productid"), hwlayoutPath(path + "/layout"), dpiPath(path + "/dpi");
+    QFile ftpath(path + "/features"), mpath(path + "/model"), spath(path + "/serial"), fwpath(path + "/fwversion"), ppath(path + "/pollrate"), prodpath(path + "/productid"), hwlayoutPath(path + "/layout"), dpiPath(path + "/dpi"), mouseInfoPath(path + "/mouseinfo");
     if (ftpath.open(QIODevice::ReadOnly)){
         features = ftpath.read(1000);
         features = features.trimmed();
@@ -96,6 +96,20 @@ Kb::Kb(QObject *parent, const QString& path) :
     }
     if(!_maxDpi)
         _maxDpi = 12000;
+
+    if(mouseInfoPath.open(QIODevice::ReadOnly)) {
+        QStringList components = QString(mouseInfoPath.read(12)).trimmed().split(':');
+        if (components.length() > 2) {
+            bool ok;
+            dpiCount = (uchar) components.at(0).toShort(&ok);
+            if(!ok) dpiCount = 6;
+            minLift = (uchar) components.at(1).toShort(&ok);
+            if(!ok) minLift = 1;
+            maxLift = (uchar) components.at(2).toShort(&ok);
+            if(!ok) maxLift = 5;
+        }
+        mouseInfoPath.close();
+    }
 
     prefsPath = "Devices/" + usbSerial;
 
@@ -763,14 +777,14 @@ void Kb::readNotify(QString line){
                     perf->dpiEnabled(index, false);
                     // If all DPIs have been disabled, turn them back on
                     bool allOff = true;
-                    for(int i = 1; i < KbPerf::DPI_COUNT; i++){
+                    for(int i = 1; i < dpiCount; i++){
                         if(perf->dpiEnabled(i)){
                             allOff = false;
                             break;
                         }
                     }
                     if(allOff){
-                        for(int i = 1; i < KbPerf::DPI_COUNT; i++)
+                        for(int i = 1; i < dpiCount; i++)
                             perf->dpiEnabled(i, true);
                     }
                 } else {
@@ -786,8 +800,8 @@ void Kb::readNotify(QString line){
             int idx = components[3].toInt();
             if(idx < 1)
                 idx = 1;
-            if(idx >= KbPerf::DPI_COUNT)
-                idx = KbPerf::DPI_COUNT - 1;
+            if(idx >= dpiCount)
+                idx = dpiCount - 1;
             perf->baseDpiIdx(idx);
         } else if(components[2] == "hwlift"){
             // Mouse lift height (1...5)

@@ -6,6 +6,7 @@
 #include "ckbsettings.h"
 #include "keymap.h"
 
+class Kb;
 class KbMode;
 class KbBind;
 class KbLight;
@@ -17,7 +18,7 @@ class KbPerf : public QObject
     Q_OBJECT
 public:
     // New setup with default settings
-    explicit KbPerf(KbMode* parent);
+    explicit KbPerf(KbMode* parent, Kb* device);
     // Copy a setup
     KbPerf(KbMode* parent, const KbPerf& other);
     const KbPerf& operator= (const KbPerf& rhs);
@@ -42,7 +43,12 @@ public:
     inline bool angleSnap() const { return _angleSnap; }
     void        angleSnap(bool newAngleSnap);
 
+    // Parent device
+    inline Kb* device() const {return _device;} 
+
     // Stored DPI settings (X/Y)
+    // Note: DPI_COUNT may vary from the actual amount of supported profiles.
+    //       The amount of supported profiles is stored in Kb.dpiCount
     const static int DPI_COUNT = 6, SNIPER = 0;
     const static int DPI_MIN = 100;
 
@@ -132,6 +138,9 @@ private:
 
     // Send indicator state to KbLight, taking current opacity into account
     void lightIndicator(const char* name, QRgb rgba);
+
+     // The parent device
+    Kb* _device;
 
     // DPI
     int dpiX[DPI_COUNT];
