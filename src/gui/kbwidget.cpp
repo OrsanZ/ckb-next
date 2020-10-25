@@ -57,10 +57,6 @@ KbWidget::KbWidget(QWidget *parent, Kb *_device) :
         ui->lightWidget->setLegacyM95();
     }
 
-    // If we have a DARK CORE or Dark Core SE, then change the performance tab accordingly
-    if(device->model() == KeyMap::DARKCORE)
-        ui->mPerfWidget->setDarkCore();
-
     // If the device is supports wireless, show the battery
     if(device->features.contains("wireless")){
         connect(device, &Kb::batteryChanged, this, &KbWidget::updateBattery);
